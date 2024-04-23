@@ -50,7 +50,7 @@ def plot_TN_density_surface(scaling_constant, A, b, xrange=(-10, 20), yrange=(-1
     # plt.show()
 
 # scaling_constant= 1 / quad(gaussian_density, -1, 1, args=(0, 1))[0] # args=(mean, sigma)   
-# gaussian_info = read_data(pathname = "gaussian_input/iter_data2", filename = "info.json")
+# gaussian_info = read_data(pathname = "gaussian_input/iter_data", filename = "info.json")
 # dim = gaussian_info['Dimension']
 # K = gaussian_info['Number of measures']
 # n_samples = 2000

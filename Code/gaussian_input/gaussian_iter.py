@@ -28,7 +28,7 @@ for i in range(K):
     dict_info['Mean of nu_{}'.format(i)] = mean.tolist()
     dict_info['A_matrix of nu_{}'.format(i)] = A_matrix.tolist()
 
-save_data(data = dict_info, pathname = "gaussian_input/iter_data2", filename = "info.json")
+save_data(data = dict_info, pathname = "gaussian_input/iter_data", filename = "info.json")
 
 nu_list = []
 for i in range(K):
@@ -42,26 +42,26 @@ objective_dict = {}
 error = 1e-3
 threshold = 6
 while difference > error and iter < threshold:
-    BX= iter_scheme.rejection_sampling(iter, pathname="gaussian_input/iter_data2")
+    BX= iter_scheme.rejection_sampling(iter, pathname="gaussian_input/iter_data")
     V_value = 0
     for k in range(K):
         b, A = nu_list[k].parameters[0][0], nu_list[k].parameters[0][1]
         BY = nu_list[k].generate_truncated_sample(size = n_samples, R = radius_truncate, A = A, b = b)  
         W2_square = iter_scheme.W2_square(BX, BY)
         V_value += W2_square
-        iter_scheme.map_construct_location_scatter(BX, BY, A, b, radius_truncate, iter, k, pathname = "gaussian_input/iter_data2")
+        iter_scheme.map_construct_location_scatter(BX, BY, A, b, radius_truncate, iter, k, pathname = "gaussian_input/iter_data")
     objective = V_value / K
     difference = abs(objective - objective_list[-1])
     objective_list.append(objective)
     objective_dict['objective in iteration_{}'.format(iter)] = objective
     # objective_dict['difference in iteration_{}'.format(iter)] = difference
-    save_data(data = objective_dict, pathname = "gaussian_input/iter_data2", filename = "iter_objective.json")
+    save_data(data = objective_dict, pathname = "gaussian_input/iter_data", filename = "iter_objective.json")
     iter += 1
 #iter = 10
-barycenter = iter_scheme.present_barycenter(iter = iter, pathname="gaussian_input/iter_data2")
-save_data(data = barycenter.tolist(), pathname = "gaussian_input/iter_data2", filename = "barycenter.json")
+barycenter = iter_scheme.present_barycenter(iter = iter, pathname="gaussian_input/iter_data")
+save_data(data = barycenter.tolist(), pathname = "gaussian_input/iter_data", filename = "barycenter.json")
 
-BX = read_data(pathname = "gaussian_input/iter_data2", filename = "barycenter.json")
+BX = read_data(pathname = "gaussian_input/iter_data", filename = "barycenter.json")
 V_value = 0
 for k in range(K):
     b = nu_list[k].parameters[0][0]
@@ -71,7 +71,7 @@ for k in range(K):
     V_value += W2_square
 V_value = V_value / K
 bary_objective = V_value
-save_data(data = bary_objective, pathname = "gaussian_input/iter_data2", filename = "barycenter_objective.json")
+save_data(data = bary_objective, pathname = "gaussian_input/iter_data", filename = "barycenter_objective.json")
 
 
 

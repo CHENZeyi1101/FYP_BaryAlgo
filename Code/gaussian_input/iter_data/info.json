@@ -2,7 +2,7 @@
     "Dimension": 2,
     "Number of measures": 4,
     "Generating seed": 41,
-    "Number of samples per iteration": 50,
+    "Number of samples per iteration": 100,
     "R": 50,
     "lambda_lower": 0.01,
     "lambda_upper": 1000,
