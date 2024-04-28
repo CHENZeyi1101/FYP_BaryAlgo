@@ -17,12 +17,16 @@ base_mu = np.zeros(dim)
 base_sample = measure.generate_truncated_sample(size = 2000, R = 1, A = np.eye(dim), b = np.zeros(dim))
 base_cov = (base_sample - base_mu).T @ (base_sample - base_mu) / 1999
 base_A = sqrtm(base_cov)
+# base_sample = pinv(base_A) @ (base_sample - base_mu)
 
 nu_para = measure.generate_random_parameters(K, seed = 41)
 dict_info = {}
 dict_info['Dimension'] = dim
 dict_info['Number of measures'] = K
 dict_info["Generating seed"] = 41
+dict_info['Base mean'] = base_mu.tolist()
+dict_info['Base covariance'] = base_cov.tolist()
+dict_info['Base A matrix'] = base_A.tolist()
 
 for i in range(K):
     mean, A = nu_para[i]
@@ -40,11 +44,13 @@ for i in range(K):
 truncated_measures = {}
 truncated_mu_list = []
 truncated_cov_list = []
+truncated_A_list = []
 
 for i in range(K):
     truncated_mu = nu_para[i][0]
-    truncated_sample = nu_list[i].generate_truncated_sample(size = 2000, R = 1, A = nu_para[i][1], b = nu_para[i][0])
-    truncated_cov = (truncated_sample - truncated_mu).T @ (truncated_sample - truncated_mu) / 1999
+    truncated_cov = nu_para[i][1] @ nu_para[i][1].T
+    # truncated_sample = nu_list[i].generate_truncated_sample(size = 2000, R = 1, A = nu_para[i][1]@ pinv(base_A) , b = nu_para[i][0])
+    # truncated_cov = (truncated_sample - truncated_mu).T @ (truncated_sample - truncated_mu) / 1999
     truncated_measures['Mean of truncated nu_{}'.format(i)] = truncated_mu.tolist()
     truncated_measures['Covariance matrix of truncated nu_{}'.format(i)] = truncated_cov.tolist()
     truncated_mu_list.append(truncated_mu)
@@ -83,19 +89,22 @@ print(V_list)
 
 n_samples = 100
 barycenter = Measure(dim, "gaussian", [(mu, Sigma)])
-sqrtm_Sigma = sqrtm(Sigma)
-A_bary = sqrtm_Sigma @ pinv(base_A)
+A_bary = sqrtm(Sigma)
 b_bary = mu
+# sqrtm_Sigma = sqrtm(Sigma)
+# A_bary = sqrtm_Sigma @ pinv(base_A)
+# b_bary = mu
 barycenter_info = {}
 barycenter_info['b of barycenter'] = mu.tolist()
 barycenter_info['A of barycenter'] = A_bary.tolist()
+barycenter_info['Sigma of barycenter'] = Sigma.tolist()
 save_data(data = barycenter_info, pathname = "gaussian_input/FP_data", filename = "barycenter_info.json")
 
-BX = barycenter.generate_truncated_sample(size =200, R = 1, A = A_bary, b = b_bary)
+BX = barycenter.generate_truncated_sample(size =200, R = 1, A = A_bary @ pinv(base_A), b = b_bary)
 save_data(data = BX.tolist(), pathname = "gaussian_input/FP_data", filename = "barycenter_sample.json")
 V_value = 0
 for i in range(K):
-    BY = nu_list[i].generate_truncated_sample(size = 200, R = 1, A = nu_para[i][1], b = nu_para[i][0])
+    BY = nu_list[i].generate_truncated_sample(size = 200, R = 1, A = nu_para[i][1] @ pinv(base_A), b = nu_para[i][0])
     W2_square = Iterative_Scheme(dim, K, n_samples).W2_square(BX, BY)
     V_value += W2_square
 V_value = V_value / K   

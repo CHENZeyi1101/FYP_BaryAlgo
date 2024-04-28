@@ -12,11 +12,17 @@ import matplotlib.cm as cm
 def gaussian_density(x, mu, sigma):
         return 1 / (np.sqrt(2 * np.pi * sigma**2)) * np.exp(-(x - mu)**2 / (2 * sigma**2))
 
-def plot_TN_density_surface(scaling_constant, A, b, xrange=(-10, 20), yrange=(-10, 20), grid_size=300, save_as = None, name = None, sample_points = None):
+def plot_TN_density_surface(scaling_constant, A, b, xrange=(-30, 50), yrange=(-30, 50), grid_size=500, save_as = None, name = None, sample_points = None):
+    measure = Measure(dim, "gaussian", [])
+    base_mu = np.zeros(dim)
+    base_sample = measure.generate_truncated_sample(size = 2000, R = 1, A = np.eye(dim), b = np.zeros(dim))
+    base_cov = (base_sample - base_mu).T @ (base_sample - base_mu) / 1999
+    base_A = sqrtm(base_cov)
+
     def TN_density(x, scaling_constant, A, b):
         mu = np.zeros(x.shape[0])
         cov = np.eye(x.shape[0])
-        base = np.dot(np.linalg.inv(A), (x - b))
+        base = np.dot(base_A @ np.linalg.inv(A), (x - b))
         if np.linalg.norm(base) <= 1:
             return multivariate_normal.pdf(base, mean=mu, cov=cov) * scaling_constant
         else:
@@ -49,35 +55,38 @@ def plot_TN_density_surface(scaling_constant, A, b, xrange=(-10, 20), yrange=(-1
         plt.show() # Clear the current figure
     # plt.show()
 
-# scaling_constant= 1 / quad(gaussian_density, -1, 1, args=(0, 1))[0] # args=(mean, sigma)   
-# gaussian_info = read_data(pathname = "gaussian_input/iter_data", filename = "info.json")
-# dim = gaussian_info['Dimension']
-# K = gaussian_info['Number of measures']
-# n_samples = 2000
-# radius_truncate = 1
-# nu_para = []
-# for i in range(K):
-#     mean = np.array(gaussian_info['Mean of nu_{}'.format(i)])
-#     A_matrix = np.array(gaussian_info['A_matrix of nu_{}'.format(i)])
-#     nu_para.append((mean, A_matrix))
+scaling_constant= 1 / quad(gaussian_density, -1, 1, args=(0, 1))[0] # args=(mean, sigma)   
+gaussian_info = read_data(pathname = "gaussian_input/iter_data", filename = "info.json")
+dim = gaussian_info['Dimension']
+K = gaussian_info['Number of measures']
+n_samples = 2000
+radius_truncate = 1
+nu_para = []
+for i in range(K):
+    mean = np.array(gaussian_info['Mean of nu_{}'.format(i)])
+    A_matrix = np.array(gaussian_info['A_matrix of nu_{}'.format(i)])
+    nu_para.append((mean, A_matrix))
 
-# nu_list = []
-# for i in range(K):
-#     nu_list.append(Measure(dim, "gaussian", [nu_para[i]]))
+nu_list = []
+for i in range(K):
+    nu_list.append(Measure(dim, "gaussian", [nu_para[i]]))
     
-# for k in range(K):
-#     b, A = nu_list[k].parameters[0][0], nu_list[k].parameters[0][1]
-#     plot_TN_density_surface(scaling_constant, A, b, save_as = f"gaussian_input/measure_visualization/nu_{k}.png", name = f"$\\nu_{k + 1}$")
+for k in range(K):
+    b, A = nu_list[k].parameters[0][0], nu_list[k].parameters[0][1]
+    plot_TN_density_surface(scaling_constant, A, b, save_as = f"gaussian_input/measure_visualization/nu_{k}.png", name = f"$\\nu_{k + 1}$")
 
 
-# b_bary = np.array(read_data(pathname = "gaussian_input/FP_data", filename = "barycenter_info.json")["b of barycenter"])
-# A_bary = np.array(read_data(pathname = "gaussian_input/FP_data", filename = "barycenter_info.json")["A of barycenter"])
-# sample_points = np.array(read_data(pathname = "gaussian_input/iter_data2", filename = "barycenter.json"))
-# plot_TN_density_surface(scaling_constant, A_bary, b_bary, save_as = "gaussian_input/measure_visualization/barycenter_GT.png", name = "the barycenter", sample_points=None)
-# plot_TN_density_surface(scaling_constant, A_bary, b_bary, save_as = "gaussian_input/measure_visualization/barycenter.png", name = "the barycenter", sample_points=sample_points)
+b_bary = np.array(read_data(pathname = "gaussian_input/FP_data", filename = "barycenter_info.json")["b of barycenter"])
+A_bary = np.array(read_data(pathname = "gaussian_input/FP_data", filename = "barycenter_info.json")["A of barycenter"])
+
+
+plot_TN_density_surface(scaling_constant, A_bary, b_bary, save_as = "gaussian_input/measure_visualization/barycenter_GT.png", name = "the barycenter", sample_points=None)
+
+sample_points = np.array(read_data(pathname = "gaussian_input/iter_data", filename = "barycenter.json"))
+plot_TN_density_surface(scaling_constant, A_bary, b_bary, save_as = "gaussian_input/measure_visualization/barycenter.png", name = "the barycenter", sample_points=sample_points)
 
 bary_V = read_data(pathname = "gaussian_input/FP_data", filename = "solve_data.json")["Objective value"]
-bary_V_iter = list(read_data(pathname = "gaussian_input/iter_data2", filename = "iter_objective.json").values())
+bary_V_iter = list(read_data(pathname = "gaussian_input/iter_data", filename = "iter_objective.json").values())
 
 
 plt.plot(range(1, len(bary_V_iter) + 1), bary_V_iter, marker='o', linestyle='-', color='red', label='iterative output measure')

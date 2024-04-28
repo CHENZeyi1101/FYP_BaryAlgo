@@ -3,8 +3,8 @@
     "Number of measures": 4,
     "Generating seed": 41,
     "Number of samples per iteration": 100,
-    "R": 50,
-    "lambda_lower": 0.01,
+    "R": 400,
+    "lambda_lower": 0.001,
     "lambda_upper": 1000,
     "Mean of nu_0": [
         2.5092362374494015,

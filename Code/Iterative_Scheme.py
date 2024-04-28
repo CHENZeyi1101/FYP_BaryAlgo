@@ -65,22 +65,20 @@ class Measure:
         
     def generate_truncated_sample(self, size, R = 1, A = None, b = None, seed = None):
         dim = self.dim
-        if self.type == "gaussian":
+        if self.type == "gaussian": # location scattered
             accepted = []
-            sample = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), 10 * size)
-            # breakpoint()
+            sample = np.random.multivariate_normal(np.zeros(dim), np.eye(dim), 100 * size)
             index = 0
             while len(accepted) < size:
-                if norm(sample[index]) < R:
+                if norm(sample[index]) < R: # Truncatiion
                     accepted.append(A @ sample[index] + b)
                 index += 1
             return np.squeeze(np.array(accepted))
 
-        elif self.type == "mixture_gaussian": # not location scatter
+        elif self.type == "mixture_gaussian": # not location scattered
             accepted = []
-            
             while len(accepted) < size:
-                sample = self.generate_mixture_gaussian_sample(10 * size, seed)
+                sample = self.generate_mixture_gaussian_sample(100 * size, seed)
                 index = 0
                 while len(accepted) < size and index < 10 * size:
                     if norm(sample[index]) < R:
@@ -93,9 +91,8 @@ class Measure:
 
 class OT_Map_Estimator:
     def __init__(self, BX, BY, lambda_lower = 0.1, lambda_upper = 1000):
-        # Samples from the source and target measures
-        self.BX = BX
-        self.BY = BY
+        self.BX = BX # Samples from the source measure
+        self.BY = BY # Samples from the target measure
         self.lambda_lower = lambda_lower
         self.lambda_upper = lambda_upper
 
@@ -104,12 +101,14 @@ class OT_Map_Estimator:
         m, n = len(self.BX), len(self.BY)
         model = gp.Model("LP_OptCoupling")
         
+        # Define the decision variables
         pi = {}
         for i in range(m):
             for j in range(n):
                 pi[i, j] = model.addVar(lb=0.0, ub = 1.0, vtype=GRB.CONTINUOUS, name=f"pi_{i}_{j}")
         model.update()
         
+        # Define the objective function
         obj = gp.quicksum(pi[i, j] * np.linalg.norm(x[i] - y[j])**2 for i in range(m) for j in range(n))
         model.setObjective(obj, GRB.MINIMIZE)
         
@@ -122,12 +121,13 @@ class OT_Map_Estimator:
         
         # Optimize the model
         model.optimize()
+
         optimal_solution = np.array([[pi[i, j].x for j in range(n)] for i in range(m)])
         optimal_objective = model.objVal
         
         return optimal_solution, optimal_objective
 
-    def solve_opt_tuples_location_scatter(self, A, b, R = 1):
+    def solve_opt_tuples_location_scatter(self, A, b, R):
         BX, BY = self.BX, self.BY
         lambda_lower, lambda_upper = self.lambda_lower, self.lambda_upper
         hat_pi_star, objective = self.solve_OptCoupling_matrix()
@@ -137,7 +137,7 @@ class OT_Map_Estimator:
         model = gp.Model("OptTuple_qcqp")
         
         # Set NumericFocus parameter to 2 (Aggressive numerical emphasis)
-        model.setParam('NumericFocus', 2)
+        # model.setParam('NumericFocus', 2)
         
         tilde_BIg = {}
         tilde_varphi = {}
@@ -160,9 +160,9 @@ class OT_Map_Estimator:
         # Add constraints
         for i in range(m):
             aux = tilde_BIg[i] + lambda_lower * BX[i]
-            # model.addConstr(aux @ aux <= 1)
+            # model.addConstr(aux @ aux <= R^2)
             A_inv = sp.linalg.solve(A, np.eye(dim))
-            model.addConstr((A_inv @ (aux - b)) @ (A_inv @ (aux - b)) <= R)
+            model.addConstr((A_inv @ (aux - b)) @ (A_inv @ (aux - b)) <= R^2)
             # breakpoint()
             for j in range(m):
                 if i != j:
@@ -196,7 +196,7 @@ class OT_Map_Estimator:
         model = gp.Model("OptTuple_qcqp")
         
         # Set NumericFocus parameter to 2 (Aggressive numerical emphasis)
-        model.setParam('NumericFocus', 2)
+        # model.setParam('NumericFocus', 2)
         
         tilde_BIg = {}
         tilde_varphi = {}
@@ -337,8 +337,7 @@ class Iterative_Scheme:
         accepted = []
         while count < self.n_samples:
             sample = np.random.multivariate_normal(np.zeros(self.dim), np.eye(self.dim))
-            for t in range(iter):
-                # breakpoint()
+            for t in range(iter): # pass (i.e., no mapping) when t = 0
                 sum_sample = np.zeros(self.dim)
                 for k in range(self.K):
                     data = self.read_data(pathname, "output_{}_{}.json".format(t, k))
